@@ -1,8 +1,6 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
@@ -15,18 +13,12 @@ void main() {
   // the rendering_test.dart dependency of this test uses the bindings in not
   // compatible with existing tests in object_test.dart.
   test('reentrant paint error', () {
-    FlutterErrorDetails errorDetails;
-    final FlutterExceptionHandler oldHandler = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      errorDetails = details;
-    };
+    late FlutterErrorDetails errorDetails;
     final RenderBox root = TestReentrantPaintingErrorRenderBox();
-    try {
-      layout(root);
-      pumpFrame(phase: EnginePhase.paint);
-    } finally {
-      FlutterError.onError = oldHandler;
-    }
+    layout(root, onErrors: () {
+      errorDetails = renderer.takeFlutterErrorDetails()!;
+    });
+    pumpFrame(phase: EnginePhase.paint);
 
     expect(errorDetails, isNotNull);
     expect(errorDetails.stack, isNotNull);
@@ -68,7 +60,7 @@ void main() {
   });
 
   test('needsCompositingBitsUpdate paint error', () {
-    FlutterError flutterError;
+    late FlutterError flutterError;
     final RenderBox root = RenderRepaintBoundary(child: RenderSizedBox(const Size(100, 100)));
     try {
       layout(root);
@@ -104,7 +96,7 @@ void main() {
     );
     expect(
       flutterError.diagnostics.singleWhere((DiagnosticsNode node) => node.level == DiagnosticLevel.hint).toString(),
-      'This usually indicates an error in the Flutter framework itself.'
+      'This usually indicates an error in the Flutter framework itself.',
     );
   });
 }

@@ -1,4 +1,4 @@
-// Copyright 2017 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -21,7 +21,7 @@ void main() {
       boilerplate(child: const CupertinoButton(
         child: Text('X', style: testStyle),
         onPressed: null,
-      ))
+      )),
     );
     final RenderBox buttonBox = tester.renderObject(find.byType(CupertinoButton));
     expect(
@@ -38,7 +38,7 @@ void main() {
         child: Text('X', style: testStyle),
         onPressed: null,
         minSize: minSize,
-      ))
+      )),
     );
     final RenderBox buttonBox = tester.renderObject(find.byType(CupertinoButton));
     expect(
@@ -53,7 +53,7 @@ void main() {
       boilerplate(child: const CupertinoButton(
         child: Text('XXXX', style: testStyle),
         onPressed: null,
-      ))
+      )),
     );
     final RenderBox buttonBox = tester.renderObject(find.byType(CupertinoButton));
     expect(
@@ -61,6 +61,71 @@ void main() {
       // 4 10px character + 16px * 2 = 72.
       72.0,
     );
+  });
+
+  // TODO(LongCatIsLoong): Uncomment once https://github.com/flutter/flutter/issues/44115
+  // is fixed.
+  /*
+  testWidgets(
+    'CupertinoButton.filled default color contrast meets guideline',
+    (WidgetTester tester) async {
+      // The native color combination systemBlue text over white background fails
+      // to pass the color contrast guideline.
+      //await tester.pumpWidget(
+      //  CupertinoTheme(
+      //    data: const CupertinoThemeData(),
+      //    child: Directionality(
+      //      textDirection: TextDirection.ltr,
+      //      child: CupertinoButton.filled(
+      //        child: const Text('Button'),
+      //        onPressed: () {},
+      //      ),
+      //    ),
+      //  ),
+      //);
+      //await expectLater(tester, meetsGuideline(textContrastGuideline));
+
+      await tester.pumpWidget(
+        CupertinoApp(
+          theme: const CupertinoThemeData(brightness: Brightness.dark),
+          home: CupertinoPageScaffold(
+            child: CupertinoButton.filled(
+              child: const Text('Button'),
+              onPressed: () {},
+            ),
+          ),
+        ),
+      );
+
+      await expectLater(tester, meetsGuideline(textContrastGuideline));
+  });
+  */
+
+  testWidgets('Button child alignment', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: CupertinoButton(
+          onPressed: () { },
+          child: const Text('button'),
+        ),
+      ),
+    );
+
+    Align align = tester.firstWidget<Align>(find.ancestor(of: find.text('button'), matching: find.byType(Align)));
+    expect(align.alignment, Alignment.center); // default
+
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: CupertinoButton(
+          alignment: Alignment.centerLeft,
+          onPressed: () { },
+          child: const Text('button'),
+        ),
+      ),
+    );
+
+    align = tester.firstWidget<Align>(find.ancestor(of: find.text('button'), matching: find.byType(Align)));
+    expect(align.alignment, Alignment.centerLeft);
   });
 
   testWidgets('Button with background is wider', (WidgetTester tester) async {
@@ -111,22 +176,22 @@ void main() {
 
     expect(value, isFalse);
     // No animating by default.
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(0));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(0));
     await tester.tap(find.byType(CupertinoButton));
     expect(value, isTrue);
     // Animates.
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(1));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(1));
   });
 
-  testWidgets('Disabled button doesn\'t animate', (WidgetTester tester) async {
+  testWidgets("Disabled button doesn't animate", (WidgetTester tester) async {
     await tester.pumpWidget(boilerplate(child: const CupertinoButton(
       child: Text('Tap me'),
       onPressed: null,
     )));
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(0));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(0));
     await tester.tap(find.byType(CupertinoButton));
     // Still doesn't animate.
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(0));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(0));
   });
 
   testWidgets('pressedOpacity defaults to 0.1', (WidgetTester tester) async {
@@ -145,7 +210,7 @@ void main() {
       of: find.byType(CupertinoButton),
       matching: find.byType(FadeTransition),
     ));
-    expect(opacity.opacity.value, 0.1);
+    expect(opacity.opacity.value, 0.4);
   });
 
   testWidgets('pressedOpacity parameter', (WidgetTester tester) async {
@@ -210,7 +275,7 @@ void main() {
 
     BoxDecoration boxDecoration = tester.widget<DecoratedBox>(
         find.widgetWithText(DecoratedBox, 'Skeuomorph me')
-      ).decoration;
+      ).decoration as BoxDecoration;
 
     expect(boxDecoration.color, const Color(0x000000FF));
 
@@ -223,13 +288,62 @@ void main() {
 
     boxDecoration = tester.widget<DecoratedBox>(
         find.widgetWithText(DecoratedBox, 'Skeuomorph me')
-      ).decoration;
+      ).decoration as BoxDecoration;
 
     expect(boxDecoration.color, const Color(0x0000FF00));
   });
 
+  testWidgets('Can specify dynamic colors', (WidgetTester tester) async {
+    const Color bgColor = CupertinoDynamicColor.withBrightness(
+      color: Color(0xFF123456),
+      darkColor: Color(0xFF654321),
+    );
+
+    const Color inactive = CupertinoDynamicColor.withBrightness(
+      color: Color(0xFF111111),
+      darkColor: Color(0xFF222222),
+    );
+
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(platformBrightness: Brightness.dark),
+        child: boilerplate(child: CupertinoButton(
+          child: const Text('Skeuomorph me'),
+          color: bgColor,
+          disabledColor: inactive,
+          onPressed: () { },
+        )),
+      ),
+    );
+
+    BoxDecoration boxDecoration = tester.widget<DecoratedBox>(
+      find.widgetWithText(DecoratedBox, 'Skeuomorph me')
+    ).decoration as BoxDecoration;
+
+    expect(boxDecoration.color!.value, 0xFF654321);
+
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(platformBrightness: Brightness.light),
+        child: boilerplate(child: const CupertinoButton(
+          child: Text('Skeuomorph me'),
+          color: bgColor,
+          disabledColor: inactive,
+          onPressed: null,
+        )),
+      ),
+    );
+
+    boxDecoration = tester.widget<DecoratedBox>(
+      find.widgetWithText(DecoratedBox, 'Skeuomorph me')
+    ).decoration as BoxDecoration;
+
+    // Disabled color.
+    expect(boxDecoration.color!.value, 0xFF111111);
+  });
+
   testWidgets('Button respects themes', (WidgetTester tester) async {
-    TextStyle textStyle;
+    late TextStyle textStyle;
 
     await tester.pumpWidget(
       CupertinoApp(
@@ -257,13 +371,13 @@ void main() {
       ),
     );
 
-    expect(textStyle.color, CupertinoColors.white);
+    expect(textStyle.color, isSameColorAs(CupertinoColors.white));
     BoxDecoration decoration = tester.widget<DecoratedBox>(
       find.descendant(
         of: find.byType(CupertinoButton),
         matching: find.byType(DecoratedBox),
-      )
-    ).decoration;
+      ),
+    ).decoration as BoxDecoration;
     expect(decoration.color, CupertinoColors.activeBlue);
 
     await tester.pumpWidget(
@@ -278,7 +392,7 @@ void main() {
         ),
       ),
     );
-    expect(textStyle.color, CupertinoColors.activeOrange);
+    expect(textStyle.color, isSameColorAs(CupertinoColors.systemBlue.darkColor));
 
     await tester.pumpWidget(
       CupertinoApp(
@@ -292,18 +406,18 @@ void main() {
         ),
       ),
     );
-    expect(textStyle.color, CupertinoColors.black);
+    expect(textStyle.color, isSameColorAs(CupertinoColors.black));
     decoration = tester.widget<DecoratedBox>(
       find.descendant(
         of: find.byType(CupertinoButton),
         matching: find.byType(DecoratedBox),
-      )
-    ).decoration;
-    expect(decoration.color, CupertinoColors.activeOrange);
+      ),
+    ).decoration as BoxDecoration;
+    expect(decoration.color, isSameColorAs(CupertinoColors.systemBlue.darkColor));
   });
 }
 
-Widget boilerplate({ Widget child }) {
+Widget boilerplate({ required Widget child }) {
   return Directionality(
     textDirection: TextDirection.ltr,
     child: Center(child: child),

@@ -1,9 +1,8 @@
-// Copyright 2016 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -43,14 +42,14 @@ void main() {
                   },
                   itemBuilder: (BuildContext context) {
                     return <PopupMenuItem<int>>[
-                      PopupMenuItem<int>(
+                      const PopupMenuItem<int>(
                         value: 1,
                         child: Text(
                           'hello, world',
                           style: TextStyle(color: Colors.blue),
                         ),
                       ),
-                      PopupMenuItem<int>(
+                      const PopupMenuItem<int>(
                         value: 2,
                         child: Text(
                           '你好，世界',
@@ -78,21 +77,21 @@ void main() {
     Offset bottomLeft = tester.getBottomLeft(find.text('hello, world'));
     Offset bottomRight = tester.getBottomRight(find.text('hello, world'));
 
-    expect(topLeft, const Offset(392.0, 298.3999996185303));
-    expect(topRight, const Offset(596.0, 298.3999996185303));
-    expect(bottomLeft, const Offset(392.0, 315.3999996185303));
-    expect(bottomRight, const Offset(596.0, 315.3999996185303));
+    expect(topLeft, const Offset(392.0, 299.5));
+    expect(topRight, const Offset(596.0, 299.5));
+    expect(bottomLeft, const Offset(392.0, 316.5));
+    expect(bottomRight, const Offset(596.0, 316.5));
 
     topLeft = tester.getTopLeft(find.text('你好，世界'));
     topRight = tester.getTopRight(find.text('你好，世界'));
     bottomLeft = tester.getBottomLeft(find.text('你好，世界'));
     bottomRight = tester.getBottomRight(find.text('你好，世界'));
 
-    expect(topLeft, const Offset(392.0, 346.3999996185303));
-    expect(topRight, const Offset(477.0, 346.3999996185303));
-    expect(bottomLeft, const Offset(392.0, 363.3999996185303));
-    expect(bottomRight, const Offset(477.0, 363.3999996185303));
-  }, skip: !isLinux);
+    expect(topLeft, const Offset(392.0, 347.5));
+    expect(topRight, const Offset(477.0, 347.5));
+    expect(bottomLeft, const Offset(392.0, 364.5));
+    expect(bottomRight, const Offset(477.0, 364.5));
+  });
 
   testWidgets('Text baseline with EN locale', (WidgetTester tester) async {
     // This test in combination with 'Text baseline with CJK locale' verify the baselines
@@ -129,14 +128,14 @@ void main() {
                   },
                   itemBuilder: (BuildContext context) {
                     return <PopupMenuItem<int>>[
-                      PopupMenuItem<int>(
+                      const PopupMenuItem<int>(
                         value: 1,
                         child: Text(
                           'hello, world',
                           style: TextStyle(color: Colors.blue),
                         ),
                       ),
-                      PopupMenuItem<int>(
+                      const PopupMenuItem<int>(
                         value: 2,
                         child: Text(
                           '你好，世界',
@@ -164,20 +163,19 @@ void main() {
     Offset bottomLeft = tester.getBottomLeft(find.text('hello, world'));
     Offset bottomRight = tester.getBottomRight(find.text('hello, world'));
 
-
-    expect(topLeft, const Offset(392.0, 299.19999980926514));
-    expect(topRight, const Offset(584.0, 299.19999980926514));
-    expect(bottomLeft, const Offset(392.0, 315.19999980926514));
-    expect(bottomRight, const Offset(584.0, 315.19999980926514));
+    expect(topLeft, const Offset(392.0, 300.0));
+    expect(topRight, const Offset(584.0, 300.0));
+    expect(bottomLeft, const Offset(392.0, 316));
+    expect(bottomRight, const Offset(584.0, 316));
 
     topLeft = tester.getTopLeft(find.text('你好，世界'));
     topRight = tester.getTopRight(find.text('你好，世界'));
     bottomLeft = tester.getBottomLeft(find.text('你好，世界'));
     bottomRight = tester.getBottomRight(find.text('你好，世界'));
 
-    expect(topLeft, const Offset(392.0, 347.19999980926514));
-    expect(topRight, const Offset(472.0, 347.19999980926514));
-    expect(bottomLeft, const Offset(392.0, 363.19999980926514));
-    expect(bottomRight, const Offset(472.0, 363.19999980926514));
-  }, skip: !isLinux);
+    expect(topLeft, const Offset(392.0, 348.0));
+    expect(topRight, const Offset(472.0, 348.0));
+    expect(bottomLeft, const Offset(392.0, 364.0));
+    expect(bottomRight, const Offset(472.0, 364.0));
+  });
 }

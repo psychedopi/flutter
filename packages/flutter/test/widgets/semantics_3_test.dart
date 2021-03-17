@@ -1,4 +1,4 @@
-// Copyright 2015 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -16,15 +16,11 @@ void main() {
     await tester.pumpWidget(
       Semantics(
         container: true,
-        child: Container(
+        child: Semantics(
+          label: 'test',
+          textDirection: TextDirection.ltr,
           child: Semantics(
-            label: 'test',
-            textDirection: TextDirection.ltr,
-            child: Container(
-              child: Semantics(
-                checked: true
-              ),
-            ),
+            checked: true
           ),
         ),
       ),
@@ -39,18 +35,16 @@ void main() {
             label: 'test',
             rect: TestSemantics.fullScreen,
           ),
-        ]
-      )
+        ],
+      ),
     ));
 
     // remove one
     await tester.pumpWidget(
       Semantics(
         container: true,
-        child: Container(
-          child: Semantics(
-             checked: true,
-          ),
+        child: Semantics(
+           checked: true,
         ),
       ),
     );
@@ -63,19 +57,17 @@ void main() {
             flags: SemanticsFlag.hasCheckedState.index | SemanticsFlag.isChecked.index,
             rect: TestSemantics.fullScreen,
           ),
-        ]
-      )
+        ],
+      ),
     ));
 
     // change what it says
     await tester.pumpWidget(
       Semantics(
         container: true,
-        child: Container(
-          child: Semantics(
-            label: 'test',
-            textDirection: TextDirection.ltr,
-          ),
+        child: Semantics(
+          label: 'test',
+          textDirection: TextDirection.ltr,
         ),
       ),
     );
@@ -89,21 +81,19 @@ void main() {
             textDirection: TextDirection.ltr,
             rect: TestSemantics.fullScreen,
           ),
-        ]
-      )
+        ],
+      ),
     ));
 
     // add a node
     await tester.pumpWidget(
       Semantics(
         container: true,
-        child: Container(
+        child: Semantics(
+          checked: true,
           child: Semantics(
-            checked: true,
-            child: Semantics(
-              label: 'test',
-              textDirection: TextDirection.ltr,
-            ),
+            label: 'test',
+            textDirection: TextDirection.ltr,
           ),
         ),
       ),
@@ -123,7 +113,7 @@ void main() {
     ));
 
     int changeCount = 0;
-    tester.binding.pipelineOwner.semanticsOwner.addListener(() {
+    tester.binding.pipelineOwner.semanticsOwner!.addListener(() {
       changeCount += 1;
     });
 
@@ -131,13 +121,11 @@ void main() {
     await tester.pumpWidget(
       Semantics(
         container: true,
-        child: Container(
+        child: Semantics(
+          checked: true,
           child: Semantics(
-            checked: true,
-            child: Semantics(
-              label: 'test',
-              textDirection: TextDirection.ltr,
-            ),
+            label: 'test',
+            textDirection: TextDirection.ltr,
           ),
         ),
       ),

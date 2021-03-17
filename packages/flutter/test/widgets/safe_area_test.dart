@@ -1,10 +1,9 @@
-// Copyright 2015 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -87,6 +86,22 @@ void main() {
       expect(tester.getBottomRight(find.byType(Placeholder)), const Offset(800.0, 600.0));
     });
 
+    testWidgets('SafeArea - properties', (WidgetTester tester) async {
+      final SafeArea child = SafeArea(
+        left: true,
+        right: false,
+        bottom: false,
+        child: Container()
+      );
+      final DiagnosticPropertiesBuilder properties = DiagnosticPropertiesBuilder();
+      child.debugFillProperties(properties);
+
+      expect(properties.properties.any((DiagnosticsNode n) => n is FlagProperty && n.toString() == 'avoid left padding'), true);
+      expect(properties.properties.any((DiagnosticsNode n) => n is FlagProperty && n.toString() == 'avoid right padding'), false);
+      expect(properties.properties.any((DiagnosticsNode n) => n is FlagProperty && n.toString() == 'avoid top padding'), true);
+      expect(properties.properties.any((DiagnosticsNode n) => n is FlagProperty && n.toString() == 'avoid bottom padding'), false);
+    });
+
     group('SafeArea maintains bottom viewPadding when specified for consumed bottom padding', () {
       Widget boilerplate(Widget child) {
         return Localizations(
@@ -104,7 +119,7 @@ void main() {
           maintainBottomViewPadding: true,
           child: Column(
             children: const <Widget>[
-              Expanded(child: Placeholder())
+              Expanded(child: Placeholder()),
             ],
           ),
         ));
@@ -141,7 +156,7 @@ void main() {
             resizeToAvoidBottomInset: false,
             body: Column(
               children: const <Widget>[
-                Expanded(child: Placeholder())
+                Expanded(child: Placeholder()),
               ],
             ),
           ),
@@ -297,5 +312,21 @@ void main() {
         const Rect.fromLTWH(0.0, 230.0, 800.0, 100.0),
       ]);
     });
+  });
+
+  testWidgets('SliverSafeArea - properties', (WidgetTester tester) async {
+    const SliverSafeArea child = SliverSafeArea(
+      left: true,
+      right: false,
+      bottom: false,
+      sliver: SliverToBoxAdapter(child: SizedBox(width: 800.0, height: 100.0, child: Text('padded'))),
+    );
+    final DiagnosticPropertiesBuilder properties = DiagnosticPropertiesBuilder();
+    child.debugFillProperties(properties);
+
+    expect(properties.properties.any((DiagnosticsNode n) => n is FlagProperty && n.toString() == 'avoid left padding'), true);
+    expect(properties.properties.any((DiagnosticsNode n) => n is FlagProperty && n.toString() == 'avoid right padding'), false);
+    expect(properties.properties.any((DiagnosticsNode n) => n is FlagProperty && n.toString() == 'avoid top padding'), true);
+    expect(properties.properties.any((DiagnosticsNode n) => n is FlagProperty && n.toString() == 'avoid bottom padding'), false);
   });
 }

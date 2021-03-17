@@ -1,6 +1,8 @@
-// Copyright 2016 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+
+// @dart = 2.8
 
 import 'dart:async';
 import 'dart:collection';
@@ -26,6 +28,10 @@ class ContextDependencyCycleException implements Exception {
   String toString() => 'Dependency cycle detected: ${cycle.join(' -> ')}';
 }
 
+/// The Zone key used to look up the [AppContext].
+@visibleForTesting
+const Object contextKey = _Key.key;
+
 /// The current [AppContext], as determined by the [Zone] hierarchy.
 ///
 /// This will be the first context found as we scan up the zone hierarchy, or
@@ -33,7 +39,7 @@ class ContextDependencyCycleException implements Exception {
 /// context will not have any values associated with it.
 ///
 /// This is guaranteed to never return `null`.
-AppContext get context => Zone.current[_Key.key] as AppContext ?? AppContext._root;
+AppContext get context => Zone.current[contextKey] as AppContext ?? AppContext._root;
 
 /// A lookup table (mapping types to values) and an implied scope, in which
 /// code is run.
@@ -81,8 +87,9 @@ class AppContext {
   /// If the generator ends up triggering a reentrant call, it signals a
   /// dependency cycle, and a [ContextDependencyCycleException] will be thrown.
   dynamic _generateIfNecessary(Type type, Map<Type, Generator> generators) {
-    if (!generators.containsKey(type))
+    if (!generators.containsKey(type)) {
       return null;
+    }
 
     return _values.putIfAbsent(type, () {
       _reentrantChecks ??= <Type>[];
@@ -99,8 +106,9 @@ class AppContext {
         return _boxNull(generators[type]());
       } finally {
         _reentrantChecks.removeLast();
-        if (_reentrantChecks.isEmpty)
+        if (_reentrantChecks.isEmpty) {
           _reentrantChecks = null;
+        }
       }
     });
   }
@@ -113,16 +121,6 @@ class AppContext {
       value = _parent.get<T>();
     }
     return _unboxNull(value ?? _generateIfNecessary(T, _fallbacks)) as T;
-  }
-
-  /// Gets the value associated with the specified [type], or `null` if no
-  /// such value has been associated.
-  @Deprecated('use get<T> instead for type safety.')
-  Object operator [](Type type) {
-    dynamic value = _generateIfNecessary(type, _overrides);
-    if (value == null && _parent != null)
-      value = _parent[type];
-    return _unboxNull(value ?? _generateIfNecessary(type, _fallbacks));
   }
 
   /// Runs [body] in a child context and returns the value returned by [body].
@@ -138,7 +136,7 @@ class AppContext {
   /// name. This is useful for debugging purposes and is analogous to naming a
   /// thread in Java.
   Future<V> run<V>({
-    @required FutureOr<V> body(),
+    @required FutureOr<V> Function() body,
     String name,
     Map<Type, Generator> overrides,
     Map<Type, Generator> fallbacks,
@@ -150,7 +148,7 @@ class AppContext {
       Map<Type, Generator>.unmodifiable(overrides ?? const <Type, Generator>{}),
       Map<Type, Generator>.unmodifiable(fallbacks ?? const <Type, Generator>{}),
     );
-    return await runZoned<Future<V>>(
+    return runZoned<Future<V>>(
       () async => await body(),
       zoneValues: <_Key, AppContext>{_Key.key: child},
       zoneSpecification: zoneSpecification,
@@ -164,14 +162,18 @@ class AppContext {
     AppContext ctx = this;
     while (ctx != null) {
       buf.write('AppContext');
-      if (ctx.name != null)
+      if (ctx.name != null) {
         buf.write('[${ctx.name}]');
-      if (ctx._overrides.isNotEmpty)
+      }
+      if (ctx._overrides.isNotEmpty) {
         buf.write('\n$indent  overrides: [${ctx._overrides.keys.join(', ')}]');
-      if (ctx._fallbacks.isNotEmpty)
+      }
+      if (ctx._fallbacks.isNotEmpty) {
         buf.write('\n$indent  fallbacks: [${ctx._fallbacks.keys.join(', ')}]');
-      if (ctx._parent != null)
+      }
+      if (ctx._parent != null) {
         buf.write('\n$indent  parent: ');
+      }
       ctx = ctx._parent;
       indent += '  ';
     }

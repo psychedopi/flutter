@@ -1,4 +1,4 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -11,6 +11,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_driver/driver_extension.dart';
 
 import 'src/tests/controls_page.dart';
+import 'src/tests/headings_page.dart';
+import 'src/tests/popup_page.dart';
 import 'src/tests/text_field_page.dart';
 
 void main() {
@@ -40,26 +42,25 @@ Future<String> dataHandler(String message) async {
   throw UnimplementedError();
 }
 
-const List<String> routes = <String>[
-  selectionControlsRoute,
-  textFieldRoute,
-];
+Map<String, WidgetBuilder> routes = <String, WidgetBuilder>{
+  selectionControlsRoute : (BuildContext context) => const SelectionControlsPage(),
+  popupControlsRoute : (BuildContext context) => const PopupControlsPage(),
+  textFieldRoute : (BuildContext context) => const TextFieldPage(),
+  headingsRoute: (BuildContext context) => const HeadingsPage(),
+};
 
 class TestApp extends StatelessWidget {
-  const TestApp();
+  const TestApp({Key key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      routes: <String, WidgetBuilder>{
-        selectionControlsRoute: (BuildContext context) => SelectionControlsPage(),
-        textFieldRoute: (BuildContext context) => TextFieldPage(),
-      },
+      routes: routes,
       home: Builder(
         builder: (BuildContext context) {
           return Scaffold(
             body: ListView(
-              children: routes.map<Widget>((String value) {
+              children: routes.keys.map<Widget>((String value) {
                 return MaterialButton(
                   child: Text(value),
                   onPressed: () {

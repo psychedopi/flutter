@@ -1,4 +1,4 @@
-// Copyright 2015 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -9,6 +9,13 @@ import 'package:flutter/painting.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 void main() {
+  test('MatrixUtils.transformRect handles very large finite values', () {
+    const Rect evilRect = Rect.fromLTRB(0.0, -1.7976931348623157e+308, 800.0, 1.7976931348623157e+308);
+    final Matrix4 transform = Matrix4.identity()..translate(10.0, 0.0);
+    final Rect transformedRect = MatrixUtils.transformRect(transform, evilRect);
+    expect(transformedRect.isFinite, true);
+  });
+
   test('MatrixUtils.getAsTranslation()', () {
     Matrix4 test;
     test = Matrix4.identity();

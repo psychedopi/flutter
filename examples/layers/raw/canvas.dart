@@ -1,4 +1,4 @@
-// Copyright 2015 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -46,7 +46,7 @@ ui.Picture paint(ui.Rect paintBounds) {
   // Clips the current transform
   canvas.clipRect(
     ui.Rect.fromLTRB(0, radius + 50, logicalSize.width, logicalSize.height),
-    clipOp: ui.ClipOp.difference
+    clipOp: ui.ClipOp.difference,
   );
 
   // Shifts the coordinate space of and rotates the current transform
@@ -55,7 +55,7 @@ ui.Picture paint(ui.Rect paintBounds) {
 
   final ui.Gradient yellowBlue = ui.Gradient.linear(
     ui.Offset(-radius, -radius),
-    const ui.Offset(0.0, 0.0),
+    ui.Offset.zero,
     <ui.Color>[const ui.Color(0xFFFFFF00), const ui.Color(0xFF0000FF)],
   );
 

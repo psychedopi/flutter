@@ -1,4 +1,4 @@
-// Copyright 2015 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -14,6 +14,8 @@ class CardModel {
 }
 
 class PageViewApp extends StatefulWidget {
+  const PageViewApp({Key key}) : super(key: key);
+
   @override
   PageViewAppState createState() => PageViewAppState();
 }
@@ -108,7 +110,7 @@ class PageViewAppState extends State<PageViewApp> {
     );
   }
 
-  Widget _buildAppBar() {
+  AppBar _buildAppBar() {
     return AppBar(
       title: const Text('PageView'),
       actions: <Widget>[
@@ -146,6 +148,6 @@ void main() {
       primarySwatch: Colors.blue,
       accentColor: Colors.redAccent,
     ),
-    home: PageViewApp(),
+    home: const PageViewApp(),
   ));
 }

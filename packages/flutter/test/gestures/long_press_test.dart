@@ -1,10 +1,10 @@
-// Copyright 2015 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 import 'package:flutter/gestures.dart';
+import 'package:flutter_test/flutter_test.dart';
 
-import '../flutter_test_alternative.dart';
 import 'gesture_tester.dart';
 
 // Down/move/up pair 1: normal tap sequence
@@ -46,13 +46,25 @@ const PointerUpEvent up3 = PointerUpEvent(
   position: Offset(31, 29),
 );
 
+// Down/up pair 4: tap sequence with tertiary button
+const PointerDownEvent down4 = PointerDownEvent(
+  pointer: 8,
+  position: Offset(42, 24),
+  buttons: kTertiaryButton,
+);
+
+const PointerUpEvent up4 = PointerUpEvent(
+  pointer: 8,
+  position: Offset(43, 23),
+);
+
 void main() {
   setUp(ensureGestureBinding);
 
   group('Long press', () {
-    LongPressGestureRecognizer longPress;
-    bool longPressDown;
-    bool longPressUp;
+    late LongPressGestureRecognizer longPress;
+    late bool longPressDown;
+    late bool longPressUp;
 
     setUp(() {
       longPress = LongPressGestureRecognizer();
@@ -75,6 +87,29 @@ void main() {
       tester.async.elapse(const Duration(milliseconds: 300));
       expect(longPressDown, isFalse);
       tester.async.elapse(const Duration(milliseconds: 700));
+      expect(longPressDown, isTrue);
+
+      longPress.dispose();
+    });
+
+    testGesture('Should recognize long press with altered duration', (GestureTester tester) {
+      longPress = LongPressGestureRecognizer(duration: const Duration(milliseconds: 100));
+      longPressDown = false;
+      longPress.onLongPress = () {
+        longPressDown = true;
+      };
+      longPressUp = false;
+      longPress.onLongPressUp = () {
+        longPressUp = true;
+      };
+      longPress.addPointer(down);
+      tester.closeArena(5);
+      expect(longPressDown, isFalse);
+      tester.route(down);
+      expect(longPressDown, isFalse);
+      tester.async.elapse(const Duration(milliseconds: 50));
+      expect(longPressDown, isFalse);
+      tester.async.elapse(const Duration(milliseconds: 50));
       expect(longPressDown, isTrue);
 
       longPress.dispose();
@@ -216,7 +251,7 @@ void main() {
       longPress.addPointer(const PointerDownEvent(
         pointer: 5,
         kind: PointerDeviceKind.mouse,
-        buttons: kSecondaryMouseButton | kMiddleMouseButton,
+        buttons: kSecondaryMouseButton | kTertiaryButton,
         position: Offset(10, 10),
       ));
       tester.closeArena(5);
@@ -242,7 +277,7 @@ void main() {
       tester.route(const PointerMoveEvent(
         pointer: 5,
         kind: PointerDeviceKind.mouse,
-        buttons: kMiddleMouseButton,
+        buttons: kTertiaryButton,
         position: Offset(10, 10),
       ));
       expect(longPressDown, isFalse);
@@ -256,10 +291,10 @@ void main() {
   });
 
   group('long press drag', () {
-    LongPressGestureRecognizer longPressDrag;
-    bool longPressStart;
-    bool longPressUp;
-    Offset longPressDragUpdate;
+    late LongPressGestureRecognizer longPressDrag;
+    late bool longPressStart;
+    late bool longPressUp;
+    Offset? longPressDragUpdate;
 
     setUp(() {
       longPressDrag = LongPressGestureRecognizer();
@@ -355,7 +390,7 @@ void main() {
 
     final List<String> recognized = <String>[];
 
-    LongPressGestureRecognizer longPress;
+    late LongPressGestureRecognizer longPress;
 
     setUp(() {
       longPress = LongPressGestureRecognizer()
@@ -495,9 +530,9 @@ void main() {
     // competition with a tap gesture recognizer listening on a different button.
 
     final List<String> recognized = <String>[];
-    TapGestureRecognizer tapPrimary;
-    TapGestureRecognizer tapSecondary;
-    LongPressGestureRecognizer longPress;
+    late TapGestureRecognizer tapPrimary;
+    late TapGestureRecognizer tapSecondary;
+    late LongPressGestureRecognizer longPress;
     setUp(() {
       tapPrimary = TapGestureRecognizer()
         ..onTapDown = (TapDownDetails details) {
@@ -570,6 +605,68 @@ void main() {
     const PointerMoveEvent move2 = PointerMoveEvent(
       pointer: 2,
       buttons: kSecondaryButton,
+      position: Offset(100, 200),
+    );
+
+    const PointerUpEvent up2 = PointerUpEvent(
+      pointer: 2,
+      position: Offset(100, 201),
+    );
+
+    longPress.addPointer(down2);
+    tester.closeArena(2);
+    tester.route(down2);
+    tester.async.elapse(const Duration(milliseconds: 700));
+    tester.route(move2);
+    tester.route(up2);
+    expect(recognized, <String>[]);
+    longPress.dispose();
+    recognized.clear();
+  });
+
+  testGesture('A tertiary long press should not trigger primary or secondary', (GestureTester tester) {
+    final List<String> recognized = <String>[];
+    final LongPressGestureRecognizer longPress = LongPressGestureRecognizer()
+      ..onLongPressStart = (LongPressStartDetails details) {
+        recognized.add('primaryStart');
+      }
+      ..onLongPress = () {
+        recognized.add('primary');
+      }
+      ..onLongPressMoveUpdate = (LongPressMoveUpdateDetails details) {
+        recognized.add('primaryUpdate');
+      }
+      ..onLongPressEnd = (LongPressEndDetails details) {
+        recognized.add('primaryEnd');
+      }
+      ..onLongPressUp = () {
+        recognized.add('primaryUp');
+      }
+      ..onSecondaryLongPressStart = (LongPressStartDetails details) {
+        recognized.add('secondaryStart');
+      }
+      ..onSecondaryLongPress = () {
+        recognized.add('secondary');
+      }
+      ..onSecondaryLongPressMoveUpdate = (LongPressMoveUpdateDetails details) {
+        recognized.add('secondaryUpdate');
+      }
+      ..onSecondaryLongPressEnd = (LongPressEndDetails details) {
+        recognized.add('secondaryEnd');
+      }
+      ..onSecondaryLongPressUp = () {
+        recognized.add('secondaryUp');
+      };
+
+    const PointerDownEvent down2 = PointerDownEvent(
+      pointer: 2,
+      buttons: kTertiaryButton,
+      position: Offset(30.0, 30.0),
+    );
+
+    const PointerMoveEvent move2 = PointerMoveEvent(
+      pointer: 2,
+      buttons: kTertiaryButton,
       position: Offset(100, 200),
     );
 

@@ -1,10 +1,9 @@
-// Copyright 2016 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/painting.dart';
 import '../rendering/mock_canvas.dart';
 
 void main() {
@@ -19,7 +18,25 @@ void main() {
     );
     final RenderBox box = tester.firstRenderObject(find.byType(Divider));
     expect(box.size.height, 16.0);
-    expect(find.byType(Divider), paints..path(strokeWidth: 0.0));
+    final Container container = tester.widget(find.byType(Container));
+    final BoxDecoration decoration = container.decoration! as BoxDecoration;
+    expect(decoration.border!.bottom.width, 0.0);
+  });
+
+  testWidgets('Divider custom thickness', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: Divider(
+            thickness: 5.0,
+          ),
+        ),
+      ),
+    );
+    final Container container = tester.widget(find.byType(Container));
+    final BoxDecoration decoration = container.decoration! as BoxDecoration;
+    expect(decoration.border!.bottom.width, 5.0);
   });
 
   testWidgets('Horizontal divider custom indentation', (WidgetTester tester) async {
@@ -86,14 +103,34 @@ void main() {
     );
     final RenderBox box = tester.firstRenderObject(find.byType(VerticalDivider));
     expect(box.size.width, 16.0);
-    expect(find.byType(VerticalDivider), paints..path(strokeWidth: 0.0));
+    final Container container = tester.widget(find.byType(Container));
+    final BoxDecoration decoration = container.decoration! as BoxDecoration;
+    final Border border = decoration.border! as Border;
+    expect(border.left.width, 0.0);
+  });
+
+  testWidgets('Divider custom thickness', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: VerticalDivider(
+            thickness: 5.0,
+          ),
+        ),
+      ),
+    );
+    final Container container = tester.widget(find.byType(Container));
+    final BoxDecoration decoration = container.decoration! as BoxDecoration;
+    final Border border = decoration.border! as Border;
+    expect(border.left.width, 5.0);
   });
 
   testWidgets('Vertical Divider Test 2', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Material(
-          child: Container(
+          child: SizedBox(
             height: 24.0,
             child: Row(
               children: const <Widget>[
@@ -164,5 +201,12 @@ void main() {
     lineRect = tester.getRect(find.byType(DecoratedBox));
     expect(lineRect.top, dividerRect.top + customIndent);
     expect(lineRect.bottom, dividerRect.bottom - customIndent);
+  });
+
+  // Regression test for https://github.com/flutter/flutter/issues/39533
+  testWidgets('createBorderSide does not throw exception with null context', (WidgetTester tester) async {
+    // Passing a null context used to throw an exception but no longer does.
+    expect(() => Divider.createBorderSide(null), isNot(throwsAssertionError));
+    expect(() => Divider.createBorderSide(null), isNot(throwsNoSuchMethodError));
   });
 }

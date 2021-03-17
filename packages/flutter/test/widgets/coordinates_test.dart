@@ -1,9 +1,8 @@
-// Copyright 2015 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 void main() {
@@ -38,10 +37,10 @@ void main() {
     );
 
     final RenderBox boxA = tester.renderObject(find.byKey(keyA));
-    expect(boxA.localToGlobal(const Offset(0.0, 0.0)), equals(const Offset(100.0, 100.0)));
+    expect(boxA.localToGlobal(Offset.zero), equals(const Offset(100.0, 100.0)));
 
     final RenderBox boxB = tester.renderObject(find.byKey(keyB));
-    expect(boxB.localToGlobal(const Offset(0.0, 0.0)), equals(const Offset(100.0, 200.0)));
+    expect(boxB.localToGlobal(Offset.zero), equals(const Offset(100.0, 200.0)));
     expect(boxB.globalToLocal(const Offset(110.0, 205.0)), equals(const Offset(10.0, 5.0)));
   });
 }

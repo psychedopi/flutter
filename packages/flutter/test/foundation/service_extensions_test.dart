@@ -1,12 +1,9 @@
-// Copyright 2017 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-@TestOn('!chrome')
-
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -15,12 +12,12 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import '../flutter_test_alternative.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 class TestServiceExtensionsBinding extends BindingBase
-  with ServicesBinding,
+  with SchedulerBinding,
+       ServicesBinding,
        GestureBinding,
-       SchedulerBinding,
        PaintingBinding,
        SemanticsBinding,
        RendererBinding,
@@ -31,16 +28,17 @@ class TestServiceExtensionsBinding extends BindingBase
   final Map<String, List<Map<String, dynamic>>> eventsDispatched = <String, List<Map<String, dynamic>>>{};
 
   @override
+  @protected
   void registerServiceExtension({
-    @required String name,
-    @required ServiceExtensionCallback callback,
+    required String name,
+    required ServiceExtensionCallback callback,
   }) {
     expect(extensions.containsKey(name), isFalse);
     extensions[name] = callback;
   }
 
   @override
-  void postEvent(String eventKind, Map<dynamic, dynamic> eventData) {
+  void postEvent(String eventKind, Map<String, dynamic> eventData) {
     getEventsDispatched(eventKind).add(eventData);
   }
 
@@ -55,7 +53,7 @@ class TestServiceExtensionsBinding extends BindingBase
 
   Future<Map<String, dynamic>> testExtension(String name, Map<String, String> arguments) {
     expect(extensions.containsKey(name), isTrue);
-    return extensions[name](arguments);
+    return extensions[name]!(arguments);
   }
 
   int reassembled = 0;
@@ -70,15 +68,15 @@ class TestServiceExtensionsBinding extends BindingBase
   bool frameScheduled = false;
   @override
   void scheduleFrame() {
+    ensureFrameCallbacksRegistered();
     frameScheduled = true;
   }
   Future<void> doFrame() async {
     frameScheduled = false;
-    if (ui.window.onBeginFrame != null)
-      ui.window.onBeginFrame(Duration.zero);
+    ui.window.onBeginFrame?.call(Duration.zero);
     await flushMicrotasks();
-    if (ui.window.onDrawFrame != null)
-      ui.window.onDrawFrame();
+    ui.window.onDrawFrame?.call();
+    ui.window.onReportTimings?.call(<ui.FrameTiming>[]);
   }
 
   @override
@@ -99,7 +97,7 @@ class TestServiceExtensionsBinding extends BindingBase
   }
 }
 
-TestServiceExtensionsBinding binding;
+late TestServiceExtensionsBinding binding;
 
 Future<Map<String, dynamic>> hasReassemble(Future<Map<String, dynamic>> pendingResult) async {
   bool completed = false;
@@ -117,10 +115,10 @@ Future<Map<String, dynamic>> hasReassemble(Future<Map<String, dynamic>> pendingR
 }
 
 void main() {
-  final List<String> console = <String>[];
+  final List<String?> console = <String?>[];
 
   setUpAll(() async {
-    binding = TestServiceExtensionsBinding();
+    binding = TestServiceExtensionsBinding()..scheduleFrame();
     expect(binding.frameScheduled, isTrue);
 
     // We need to test this service extension here because the result is true
@@ -130,16 +128,24 @@ void main() {
     firstFrameResult = await binding.testExtension('didSendFirstFrameEvent', <String, String>{});
     expect(firstFrameResult, <String, String>{'enabled': 'false'});
 
-    await binding.doFrame(); // initial frame scheduled by creating the binding
+    expect(binding.firstFrameRasterized, isFalse);
+    firstFrameResult = await binding.testExtension('didSendFirstFrameRasterizedEvent', <String, String>{});
+    expect(firstFrameResult, <String, String>{'enabled': 'false'});
+
+    await binding.doFrame();
 
     expect(binding.debugDidSendFirstFrameEvent, isTrue);
     firstFrameResult = await binding.testExtension('didSendFirstFrameEvent', <String, String>{});
     expect(firstFrameResult, <String, String>{'enabled': 'true'});
 
+    expect(binding.firstFrameRasterized, isTrue);
+    firstFrameResult = await binding.testExtension('didSendFirstFrameRasterizedEvent', <String, String>{});
+    expect(firstFrameResult, <String, String>{'enabled': 'true'});
+
     expect(binding.frameScheduled, isFalse);
 
     expect(debugPrint, equals(debugPrintThrottled));
-    debugPrint = (String message, { int wrapWidth }) {
+    debugPrint = (String? message, { int? wrapWidth }) {
       console.add(message);
     };
   });
@@ -154,9 +160,13 @@ void main() {
       widgetInspectorExtensionCount += 2;
     }
 
+    // The following service extensions are disabled in web:
+    // 1. exit
+    // 2. showPerformanceOverlay
+    const int disabledExtensions = kIsWeb ? 2 : 0;
     // If you add a service extension... TEST IT! :-)
     // ...then increment this number.
-    expect(binding.extensions.length, 26 + widgetInspectorExtensionCount);
+    expect(binding.extensions.length, 31 + widgetInspectorExtensionCount - disabledExtensions);
 
     expect(console, isEmpty);
     debugPrint = debugPrintThrottled;
@@ -193,10 +203,10 @@ void main() {
 
     bool lastValue = false;
     Future<void> _updateAndCheck(bool newValue) async {
-      Map<String, dynamic> result;
+      Map<String, dynamic>? result;
       binding.testExtension(
         'debugCheckElevationsEnabled',
-        <String, String>{'enabled': '$newValue'}
+        <String, String>{'enabled': '$newValue'},
       ).then((Map<String, dynamic> answer) => result = answer);
       await binding.flushMicrotasks();
       expect(binding.frameScheduled, lastValue != newValue);
@@ -216,22 +226,19 @@ void main() {
   });
 
   test('Service extensions - debugDumpApp', () async {
-    Map<String, dynamic> result;
+    final Map<String, dynamic> result = await binding.testExtension('debugDumpApp', <String, String>{});
 
-    result = await binding.testExtension('debugDumpApp', <String, String>{});
-    expect(result, <String, String>{});
-    expect(console, <String>['TestServiceExtensionsBinding - CHECKED MODE', '<no tree currently mounted>']);
-    console.clear();
+    expect(result, <String, dynamic>{
+      'data': matches('TestServiceExtensionsBinding - DEBUG MODE\n<no tree currently mounted>'),
+    });
   });
 
   test('Service extensions - debugDumpRenderTree', () async {
-    Map<String, dynamic> result;
-
     await binding.doFrame();
-    result = await binding.testExtension('debugDumpRenderTree', <String, String>{});
-    expect(result, <String, String>{});
-    expect(console, <Matcher>[
-      matches(
+    final Map<String, dynamic> result = await binding.testExtension('debugDumpRenderTree', <String, String>{});
+
+    expect(result, <String, dynamic>{
+      'data': matches(
         r'^'
         r'RenderView#[0-9a-f]{5}\n'
         r'   debug mode enabled - [a-zA-Z]+\n'
@@ -240,22 +247,20 @@ void main() {
         r'   configuration: Size\(800\.0, 600\.0\) at 3\.0x \(in logical pixels\)\n'
         r'$'
       ),
-    ]);
-    console.clear();
+    });
   });
 
   test('Service extensions - debugDumpLayerTree', () async {
-    Map<String, dynamic> result;
-
     await binding.doFrame();
-    result = await binding.testExtension('debugDumpLayerTree', <String, String>{});
-    expect(result, <String, String>{});
-    expect(console, <Matcher>[
-      matches(
+    final Map<String, dynamic> result = await binding.testExtension('debugDumpLayerTree', <String, String>{});
+
+    expect(result, <String, dynamic>{
+      'data': matches(
         r'^'
         r'TransformLayer#[0-9a-f]{5}\n'
         r'   owner: RenderView#[0-9a-f]{5}\n'
         r'   creator: RenderView\n'
+        r'   engine layer: (TransformEngineLayer|PersistedTransform)#[0-9a-f]{5}\n'
         r'   offset: Offset\(0\.0, 0\.0\)\n'
         r'   transform:\n'
         r'     \[0] 3\.0,0\.0,0\.0,0\.0\n'
@@ -264,28 +269,25 @@ void main() {
         r'     \[3] 0\.0,0\.0,0\.0,1\.0\n'
         r'$'
       ),
-    ]);
-    console.clear();
+    });
   });
 
   test('Service extensions - debugDumpSemanticsTreeInTraversalOrder', () async {
-    Map<String, dynamic> result;
-
     await binding.doFrame();
-    result = await binding.testExtension('debugDumpSemanticsTreeInTraversalOrder', <String, String>{});
-    expect(result, <String, String>{});
-    expect(console, <String>['Semantics not collected.']);
-    console.clear();
+    final Map<String, dynamic> result = await binding.testExtension('debugDumpSemanticsTreeInTraversalOrder', <String, String>{});
+
+    expect(result, <String, String>{
+      'data': 'Semantics not collected.'
+    });
   });
 
   test('Service extensions - debugDumpSemanticsTreeInInverseHitTestOrder', () async {
-    Map<String, dynamic> result;
-
     await binding.doFrame();
-    result = await binding.testExtension('debugDumpSemanticsTreeInInverseHitTestOrder', <String, String>{});
-    expect(result, <String, String>{});
-    expect(console, <String>['Semantics not collected.']);
-    console.clear();
+    final Map<String, dynamic> result = await binding.testExtension('debugDumpSemanticsTreeInInverseHitTestOrder', <String, String>{});
+
+    expect(result, <String, String>{
+      'data': 'Semantics not collected.'
+    });
   });
 
   test('Service extensions - debugPaint', () async {
@@ -385,6 +387,52 @@ void main() {
     expect(binding.frameScheduled, isFalse);
   });
 
+  test('Service extensions - invertOversizedImages', () async {
+    Map<String, dynamic> result;
+    Future<Map<String, dynamic>> pendingResult;
+    bool completed;
+
+    expect(binding.frameScheduled, isFalse);
+    expect(debugInvertOversizedImages, false);
+    result = await binding.testExtension('invertOversizedImages', <String, String>{});
+    expect(result, <String, String>{'enabled': 'false'});
+    expect(debugInvertOversizedImages, false);
+    expect(binding.frameScheduled, isFalse);
+
+    pendingResult = binding.testExtension('invertOversizedImages', <String, String>{'enabled': 'true'});
+    completed = false;
+    pendingResult.whenComplete(() { completed = true; });
+    await binding.flushMicrotasks();
+    expect(binding.frameScheduled, isTrue);
+    expect(completed, isFalse);
+    await binding.doFrame();
+    await binding.flushMicrotasks();
+    expect(completed, isTrue);
+    expect(binding.frameScheduled, isFalse);
+    result = await pendingResult;
+    expect(result, <String, String>{'enabled': 'true'});
+    expect(debugInvertOversizedImages, true);
+
+    result = await binding.testExtension('invertOversizedImages', <String, String>{});
+    expect(result, <String, String>{'enabled': 'true'});
+    expect(debugInvertOversizedImages, true);
+    expect(binding.frameScheduled, isFalse);
+
+    pendingResult = binding.testExtension('invertOversizedImages', <String, String>{'enabled': 'false'});
+    await binding.flushMicrotasks();
+    expect(binding.frameScheduled, isTrue);
+    await binding.doFrame();
+    expect(binding.frameScheduled, isFalse);
+    result = await pendingResult;
+    expect(result, <String, String>{'enabled': 'false'});
+    expect(debugInvertOversizedImages, false);
+
+    result = await binding.testExtension('invertOversizedImages', <String, String>{});
+    expect(result, <String, String>{'enabled': 'false'});
+    expect(debugInvertOversizedImages, false);
+    expect(binding.frameScheduled, isFalse);
+  });
+
   test('Service extensions - profileWidgetBuilds', () async {
     Map<String, dynamic> result;
 
@@ -419,31 +467,40 @@ void main() {
     bool completed;
 
     completed = false;
-    defaultBinaryMessenger.setMockMessageHandler('flutter/assets', (ByteData message) async {
-      expect(utf8.decode(message.buffer.asUint8List()), 'test');
+    ServicesBinding.instance!.defaultBinaryMessenger.setMockMessageHandler('flutter/assets', (ByteData? message) async {
+      expect(utf8.decode(message!.buffer.asUint8List()), 'test');
       completed = true;
       return ByteData(5); // 0x0000000000
     });
     bool data;
-    data = await rootBundle.loadStructuredData<bool>('test', (String value) async { expect(value, '\x00\x00\x00\x00\x00'); return true; });
+    data = await rootBundle.loadStructuredData<bool>('test', (String value) async {
+      expect(value, '\x00\x00\x00\x00\x00');
+      return true;
+    });
     expect(data, isTrue);
     expect(completed, isTrue);
     completed = false;
-    data = await rootBundle.loadStructuredData('test', (String value) async { expect(true, isFalse); return null; });
+    data = await rootBundle.loadStructuredData('test', (String value) async {
+      throw Error();
+    });
     expect(data, isTrue);
     expect(completed, isFalse);
     result = await binding.testExtension('evict', <String, String>{'value': 'test'});
     expect(result, <String, String>{'value': ''});
     expect(completed, isFalse);
-    data = await rootBundle.loadStructuredData<bool>('test', (String value) async { expect(value, '\x00\x00\x00\x00\x00'); return false; });
+    data = await rootBundle.loadStructuredData<bool>('test', (String value) async {
+      expect(value, '\x00\x00\x00\x00\x00');
+      return false;
+    });
     expect(data, isFalse);
     expect(completed, isTrue);
-    defaultBinaryMessenger.setMockMessageHandler('flutter/assets', null);
+    ServicesBinding.instance!.defaultBinaryMessenger.setMockMessageHandler('flutter/assets', null);
   });
 
   test('Service extensions - exit', () async {
     // no test for _calling_ 'exit', because that should terminate the process!
-    expect(binding.extensions.containsKey('exit'), isTrue);
+    // Not expecting extension to be available for web platform.
+    expect(binding.extensions.containsKey('exit'), !isBrowser);
   });
 
   test('Service extensions - platformOverride', () async {
@@ -465,43 +522,67 @@ void main() {
     extensionChangedEvent = extensionChangedEvents.last;
     expect(extensionChangedEvent['extension'], 'ext.flutter.platformOverride');
     expect(extensionChangedEvent['value'], 'iOS');
+    result = await hasReassemble(binding.testExtension('platformOverride', <String, String>{'value': 'macOS'}));
+    expect(result, <String, String>{'value': 'macOS'});
+    expect(binding.reassembled, 2);
+    expect(defaultTargetPlatform, TargetPlatform.macOS);
+    expect(extensionChangedEvents.length, 2);
+    extensionChangedEvent = extensionChangedEvents.last;
+    expect(extensionChangedEvent['extension'], 'ext.flutter.platformOverride');
+    expect(extensionChangedEvent['value'], 'macOS');
     result = await hasReassemble(binding.testExtension('platformOverride', <String, String>{'value': 'android'}));
     expect(result, <String, String>{'value': 'android'});
-    expect(binding.reassembled, 2);
+    expect(binding.reassembled, 3);
     expect(defaultTargetPlatform, TargetPlatform.android);
-    expect(extensionChangedEvents.length, 2);
+    expect(extensionChangedEvents.length, 3);
     extensionChangedEvent = extensionChangedEvents.last;
     expect(extensionChangedEvent['extension'], 'ext.flutter.platformOverride');
     expect(extensionChangedEvent['value'], 'android');
     result = await hasReassemble(binding.testExtension('platformOverride', <String, String>{'value': 'fuchsia'}));
     expect(result, <String, String>{'value': 'fuchsia'});
-    expect(binding.reassembled, 3);
+    expect(binding.reassembled, 4);
     expect(defaultTargetPlatform, TargetPlatform.fuchsia);
-    expect(extensionChangedEvents.length, 3);
+    expect(extensionChangedEvents.length, 4);
     extensionChangedEvent = extensionChangedEvents.last;
     expect(extensionChangedEvent['extension'], 'ext.flutter.platformOverride');
     expect(extensionChangedEvent['value'], 'fuchsia');
     result = await hasReassemble(binding.testExtension('platformOverride', <String, String>{'value': 'default'}));
     expect(result, <String, String>{'value': 'android'});
-    expect(binding.reassembled, 4);
+    expect(binding.reassembled, 5);
     expect(defaultTargetPlatform, TargetPlatform.android);
-    expect(extensionChangedEvents.length, 4);
+    expect(extensionChangedEvents.length, 5);
     extensionChangedEvent = extensionChangedEvents.last;
     expect(extensionChangedEvent['extension'], 'ext.flutter.platformOverride');
     expect(extensionChangedEvent['value'], 'android');
     result = await hasReassemble(binding.testExtension('platformOverride', <String, String>{'value': 'iOS'}));
     expect(result, <String, String>{'value': 'iOS'});
-    expect(binding.reassembled, 5);
+    expect(binding.reassembled, 6);
     expect(defaultTargetPlatform, TargetPlatform.iOS);
-    expect(extensionChangedEvents.length, 5);
+    expect(extensionChangedEvents.length, 6);
     extensionChangedEvent = extensionChangedEvents.last;
     expect(extensionChangedEvent['extension'], 'ext.flutter.platformOverride');
     expect(extensionChangedEvent['value'], 'iOS');
+    result = await hasReassemble(binding.testExtension('platformOverride', <String, String>{'value': 'linux'}));
+    expect(result, <String, String>{'value': 'linux'});
+    expect(binding.reassembled, 7);
+    expect(defaultTargetPlatform, TargetPlatform.linux);
+    expect(extensionChangedEvents.length, 7);
+    extensionChangedEvent = extensionChangedEvents.last;
+    expect(extensionChangedEvent['extension'], 'ext.flutter.platformOverride');
+    expect(extensionChangedEvent['value'], 'linux');
+    result = await hasReassemble(binding.testExtension('platformOverride', <String, String>{'value': 'windows'}));
+    expect(result, <String, String>{'value': 'windows'});
+    expect(binding.reassembled, 8);
+    expect(defaultTargetPlatform, TargetPlatform.windows);
+    expect(extensionChangedEvents.length, 8);
+    extensionChangedEvent = extensionChangedEvents.last;
+    expect(extensionChangedEvent['extension'], 'ext.flutter.platformOverride');
+    expect(extensionChangedEvent['value'], 'windows');
     result = await hasReassemble(binding.testExtension('platformOverride', <String, String>{'value': 'bogus'}));
     expect(result, <String, String>{'value': 'android'});
-    expect(binding.reassembled, 6);
+    expect(binding.reassembled, 9);
     expect(defaultTargetPlatform, TargetPlatform.android);
-    expect(extensionChangedEvents.length, 6);
+    expect(extensionChangedEvents.length, 9);
     extensionChangedEvent = extensionChangedEvents.last;
     expect(extensionChangedEvent['extension'], 'ext.flutter.platformOverride');
     expect(extensionChangedEvent['value'], 'android');
@@ -576,6 +657,12 @@ void main() {
   test('Service extensions - showPerformanceOverlay', () async {
     Map<String, dynamic> result;
 
+    // The performance overlay service extension is disabled on the web.
+    if (kIsWeb) {
+      expect(binding.extensions.containsKey('showPerformanceOverlay'), isFalse);
+      return;
+    }
+
     expect(binding.frameScheduled, isFalse);
     expect(WidgetsApp.showPerformanceOverlayOverride, false);
     result = await binding.testExtension('showPerformanceOverlay', <String, String>{});
@@ -626,40 +713,65 @@ void main() {
     expect(binding.frameScheduled, isFalse);
     expect(timeDilation, 1.0);
     result = await binding.testExtension('timeDilation', <String, String>{});
-    expect(result, <String, String>{'timeDilation': '1.0'});
+    expect(result, <String, String>{'timeDilation': 1.0.toString()});
     expect(timeDilation, 1.0);
     expect(extensionChangedEvents, isEmpty);
     result = await binding.testExtension('timeDilation', <String, String>{'timeDilation': '100.0'});
-    expect(result, <String, String>{'timeDilation': '100.0'});
+    expect(result, <String, String>{'timeDilation': 100.0.toString()});
     expect(timeDilation, 100.0);
     expect(extensionChangedEvents.length, 1);
     extensionChangedEvent = extensionChangedEvents.last;
     expect(extensionChangedEvent['extension'], 'ext.flutter.timeDilation');
-    expect(extensionChangedEvent['value'], '100.0');
+    expect(extensionChangedEvent['value'], 100.0.toString());
     result = await binding.testExtension('timeDilation', <String, String>{});
-    expect(result, <String, String>{'timeDilation': '100.0'});
+    expect(result, <String, String>{'timeDilation': 100.0.toString()});
     expect(timeDilation, 100.0);
     expect(extensionChangedEvents.length, 1);
     result = await binding.testExtension('timeDilation', <String, String>{'timeDilation': '1.0'});
-    expect(result, <String, String>{'timeDilation': '1.0'});
+    expect(result, <String, String>{'timeDilation': 1.0.toString()});
     expect(timeDilation, 1.0);
     expect(extensionChangedEvents.length, 2);
     extensionChangedEvent = extensionChangedEvents.last;
     expect(extensionChangedEvent['extension'], 'ext.flutter.timeDilation');
-    expect(extensionChangedEvent['value'], '1.0');
+    expect(extensionChangedEvent['value'], 1.0.toString());
     result = await binding.testExtension('timeDilation', <String, String>{});
-    expect(result, <String, String>{'timeDilation': '1.0'});
+    expect(result, <String, String>{'timeDilation': 1.0.toString()});
     expect(timeDilation, 1.0);
     expect(extensionChangedEvents.length, 2);
     expect(binding.frameScheduled, isFalse);
   });
 
-  test('Service extensions - saveCompilationTrace', () async {
+  test('Service extensions - brightnessOverride', () async {
     Map<String, dynamic> result;
-    result = await binding.testExtension('saveCompilationTrace', <String, String>{});
-    final String trace = String.fromCharCodes(result['value']);
-    expect(trace, contains('dart:core,Object,Object.\n'));
-    expect(trace, contains('package:test_api/test_api.dart,::,test\n'));
-    expect(trace, contains('service_extensions_test.dart,::,main\n'));
+    result = await binding.testExtension('brightnessOverride', <String, String>{});
+    final String brightnessValue = result['value'] as String;
+
+    expect(brightnessValue, 'Brightness.light');
+  });
+
+  test('Service extensions - activeDevToolsServerAddress', () async {
+    Map<String, dynamic> result;
+    result = await binding.testExtension('activeDevToolsServerAddress', <String, String>{});
+    String serverAddress = result['value'] as String;
+    expect(serverAddress, '');
+    result = await binding.testExtension('activeDevToolsServerAddress', <String, String>{'value': 'http://127.0.0.1:9101'});
+    serverAddress = result['value'] as String;
+    expect(serverAddress, 'http://127.0.0.1:9101');
+    result = await binding.testExtension('activeDevToolsServerAddress', <String, String>{'value': 'http://127.0.0.1:9102'});
+    serverAddress = result['value'] as String;
+    expect(serverAddress, 'http://127.0.0.1:9102');
+  });
+
+  test('Service extensions - connectedVmServiceUri', () async {
+    Map<String, dynamic> result;
+    result = await binding.testExtension('connectedVmServiceUri', <String, String>{});
+    String serverAddress = result['value'] as String;
+    expect(serverAddress, '');
+    result = await binding.testExtension('connectedVmServiceUri', <String, String>{'value': 'http://127.0.0.1:54669/kMUMseKAnog=/'});
+    serverAddress = result['value'] as String;
+    expect(serverAddress, 'http://127.0.0.1:54669/kMUMseKAnog=/');
+    result = await binding.testExtension('connectedVmServiceUri', <String, String>{'value': 'http://127.0.0.1:54000/kMUMseKAnog=/'});
+    serverAddress = result['value'] as String;
+    expect(serverAddress, 'http://127.0.0.1:54000/kMUMseKAnog=/');
   });
 }

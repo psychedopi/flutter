@@ -1,9 +1,8 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 import 'package:flutter/services.dart';
-import 'package:flutter/src/material/tooltip_theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +27,7 @@ import '../widgets/semantics_tester.dart';
 // production code.
 
 const String tooltipText = 'TIP';
+const double _customPaddingValue = 10.0;
 
 void main() {
   test('TooltipThemeData copyWith, ==, hashCode basics', () {
@@ -62,6 +62,8 @@ void main() {
 
   testWidgets('TooltipThemeData implements debugFillProperties', (WidgetTester tester) async {
     final DiagnosticPropertiesBuilder builder = DiagnosticPropertiesBuilder();
+    const Duration wait = Duration(milliseconds: 100);
+    const Duration show = Duration(milliseconds: 200);
     const TooltipThemeData(
       height: 15.0,
       padding: EdgeInsets.all(20.0),
@@ -70,8 +72,8 @@ void main() {
       excludeFromSemantics: true,
       decoration: BoxDecoration(color: Color(0xffffffff)),
       textStyle: TextStyle(decoration: TextDecoration.underline),
-      waitDuration: Duration(milliseconds: 100),
-      showDuration: Duration(milliseconds: 200),
+      waitDuration: wait,
+      showDuration: show,
     ).debugFillProperties(builder);
 
     final List<String> description = builder.properties
@@ -87,8 +89,8 @@ void main() {
       'semantics: excluded',
       'decoration: BoxDecoration(color: Color(0xffffffff))',
       'textStyle: TextStyle(inherit: true, decoration: TextDecoration.underline)',
-      'wait duration: 0:00:00.100000',
-      'show duration: 0:00:00.200000'
+      'wait duration: ${wait.toString()}',
+      'show duration: ${show.toString()}',
     ]);
   });
 
@@ -101,7 +103,7 @@ void main() {
           data: ThemeData(
             tooltipTheme: const TooltipThemeData(
               height: 100.0,
-              padding: EdgeInsets.all(0.0),
+              padding: EdgeInsets.zero,
               verticalOffset: 100.0,
               preferBelow: false,
             ),
@@ -118,7 +120,7 @@ void main() {
                         child: Tooltip(
                           key: key,
                           message: tooltipText,
-                          child: Container(
+                          child: const SizedBox(
                             width: 0.0,
                             height: 0.0,
                           ),
@@ -146,7 +148,7 @@ void main() {
      *                   *
      *********************/
 
-    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent;
+    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent! as RenderBox;
     expect(tip.size.height, equals(100.0));
     expect(tip.localToGlobal(tip.size.topLeft(Offset.zero)).dy, equals(100.0));
     expect(tip.localToGlobal(tip.size.bottomRight(Offset.zero)).dy, equals(200.0));
@@ -158,10 +160,12 @@ void main() {
       Directionality(
         textDirection: TextDirection.ltr,
         child: TooltipTheme(
-          height: 100.0,
-          padding: const EdgeInsets.all(0.0),
-          verticalOffset: 100.0,
-          preferBelow: false,
+          data: const TooltipThemeData(
+            height: 100.0,
+            padding: EdgeInsets.zero,
+            verticalOffset: 100.0,
+            preferBelow: false,
+          ),
           child: Overlay(
             initialEntries: <OverlayEntry>[
               OverlayEntry(
@@ -174,7 +178,7 @@ void main() {
                         child: Tooltip(
                           key: key,
                           message: tooltipText,
-                          child: Container(
+                          child: const SizedBox(
                             width: 0.0,
                             height: 0.0,
                           ),
@@ -202,7 +206,7 @@ void main() {
      *                   *
      *********************/
 
-    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent;
+    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent! as RenderBox;
     expect(tip.size.height, equals(100.0));
     expect(tip.localToGlobal(tip.size.topLeft(Offset.zero)).dy, equals(100.0));
     expect(tip.localToGlobal(tip.size.bottomRight(Offset.zero)).dy, equals(200.0));
@@ -217,7 +221,7 @@ void main() {
           data: ThemeData(
             tooltipTheme: const TooltipThemeData(
               height: 190.0,
-              padding: EdgeInsets.all(0.0),
+              padding: EdgeInsets.zero,
               verticalOffset: 100.0,
               preferBelow: false,
             ),
@@ -234,7 +238,7 @@ void main() {
                         child: Tooltip(
                           key: key,
                           message: tooltipText,
-                          child: Container(
+                          child: const SizedBox(
                             width: 0.0,
                             height: 0.0,
                           ),
@@ -273,7 +277,7 @@ void main() {
      *                   * }- 10.0 margin
      *********************/
 
-    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent;
+    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent! as RenderBox;
     expect(tip.size.height, equals(190.0));
     expect(tip.localToGlobal(tip.size.topLeft(Offset.zero)).dy, equals(399.0));
     expect(tip.localToGlobal(tip.size.bottomRight(Offset.zero)).dy, equals(589.0));
@@ -285,10 +289,12 @@ void main() {
       Directionality(
         textDirection: TextDirection.ltr,
         child: TooltipTheme(
-          height: 190.0,
-          padding: const EdgeInsets.all(0.0),
-          verticalOffset: 100.0,
-          preferBelow: false,
+          data: const TooltipThemeData(
+            height: 190.0,
+            padding: EdgeInsets.zero,
+            verticalOffset: 100.0,
+            preferBelow: false,
+          ),
           child: Overlay(
             initialEntries: <OverlayEntry>[
               OverlayEntry(
@@ -301,7 +307,7 @@ void main() {
                         child: Tooltip(
                           key: key,
                           message: tooltipText,
-                          child: Container(
+                          child: const SizedBox(
                             width: 0.0,
                             height: 0.0,
                           ),
@@ -340,7 +346,7 @@ void main() {
      *                   * }- 10.0 margin
      *********************/
 
-    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent;
+    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent! as RenderBox;
     expect(tip.size.height, equals(190.0));
     expect(tip.localToGlobal(tip.size.topLeft(Offset.zero)).dy, equals(399.0));
     expect(tip.localToGlobal(tip.size.bottomRight(Offset.zero)).dy, equals(589.0));
@@ -355,7 +361,7 @@ void main() {
           data: ThemeData(
             tooltipTheme: const TooltipThemeData(
               height: 190.0,
-              padding: EdgeInsets.all(0.0),
+              padding: EdgeInsets.zero,
               verticalOffset: 100.0,
               preferBelow: true,
             ),
@@ -372,7 +378,7 @@ void main() {
                         child: Tooltip(
                           key: key,
                           message: tooltipText,
-                          child: Container(
+                          child: const SizedBox(
                             width: 0.0,
                             height: 0.0,
                           ),
@@ -399,7 +405,7 @@ void main() {
      *                   * }- 10.0 margin
      *********************/
 
-    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent;
+    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent! as RenderBox;
     expect(tip.size.height, equals(190.0));
     expect(tip.localToGlobal(tip.size.topLeft(Offset.zero)).dy, equals(400.0));
     expect(tip.localToGlobal(tip.size.bottomRight(Offset.zero)).dy, equals(590.0));
@@ -411,10 +417,12 @@ void main() {
       Directionality(
         textDirection: TextDirection.ltr,
         child: TooltipTheme(
-          height: 190.0,
-          padding: const EdgeInsets.all(0.0),
-          verticalOffset: 100.0,
-          preferBelow: true,
+          data: const TooltipThemeData(
+            height: 190.0,
+            padding: EdgeInsets.zero,
+            verticalOffset: 100.0,
+            preferBelow: true,
+          ),
           child: Overlay(
             initialEntries: <OverlayEntry>[
               OverlayEntry(
@@ -427,7 +435,7 @@ void main() {
                         child: Tooltip(
                           key: key,
                           message: tooltipText,
-                          child: Container(
+                          child: const SizedBox(
                             width: 0.0,
                             height: 0.0,
                           ),
@@ -454,10 +462,124 @@ void main() {
      *                   * }- 10.0 margin
      *********************/
 
-    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent;
+    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent! as RenderBox;
     expect(tip.size.height, equals(190.0));
     expect(tip.localToGlobal(tip.size.topLeft(Offset.zero)).dy, equals(400.0));
     expect(tip.localToGlobal(tip.size.bottomRight(Offset.zero)).dy, equals(590.0));
+  });
+
+  testWidgets('Tooltip margin - ThemeData', (WidgetTester tester) async {
+    final GlobalKey key = GlobalKey();
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: Overlay(
+          initialEntries: <OverlayEntry>[
+            OverlayEntry(
+              builder: (BuildContext context) {
+                return Theme(
+                  data: ThemeData(
+                    tooltipTheme: const TooltipThemeData(
+                      padding: EdgeInsets.zero,
+                      margin: EdgeInsets.all(_customPaddingValue),
+                    ),
+                  ),
+                  child: Tooltip(
+                    key: key,
+                    message: tooltipText,
+                    child: const SizedBox(
+                      width: 0.0,
+                      height: 0.0,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+    (key.currentState as dynamic).ensureTooltipVisible(); // Before using "as dynamic" in your code, see note at the top of the file.
+    await tester.pump(const Duration(seconds: 2)); // faded in, show timer started (and at 0.0)
+
+    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent!.parent!.parent!.parent!.parent! as RenderBox;
+    final RenderBox tooltipContent = tester.renderObject(find.text(tooltipText));
+
+    final Offset topLeftTipInGlobal = tip.localToGlobal(tip.size.topLeft(Offset.zero));
+    final Offset topLeftTooltipContentInGlobal = tooltipContent.localToGlobal(tooltipContent.size.topLeft(Offset.zero));
+    expect(topLeftTooltipContentInGlobal.dx, topLeftTipInGlobal.dx + _customPaddingValue);
+    expect(topLeftTooltipContentInGlobal.dy, topLeftTipInGlobal.dy + _customPaddingValue);
+
+    final Offset topRightTipInGlobal = tip.localToGlobal(tip.size.topRight(Offset.zero));
+    final Offset topRightTooltipContentInGlobal = tooltipContent.localToGlobal(tooltipContent.size.topRight(Offset.zero));
+    expect(topRightTooltipContentInGlobal.dx, topRightTipInGlobal.dx - _customPaddingValue);
+    expect(topRightTooltipContentInGlobal.dy, topRightTipInGlobal.dy + _customPaddingValue);
+
+    final Offset bottomLeftTipInGlobal = tip.localToGlobal(tip.size.bottomLeft(Offset.zero));
+    final Offset bottomLeftTooltipContentInGlobal = tooltipContent.localToGlobal(tooltipContent.size.bottomLeft(Offset.zero));
+    expect(bottomLeftTooltipContentInGlobal.dx, bottomLeftTipInGlobal.dx + _customPaddingValue);
+    expect(bottomLeftTooltipContentInGlobal.dy, bottomLeftTipInGlobal.dy - _customPaddingValue);
+
+    final Offset bottomRightTipInGlobal = tip.localToGlobal(tip.size.bottomRight(Offset.zero));
+    final Offset bottomRightTooltipContentInGlobal = tooltipContent.localToGlobal(tooltipContent.size.bottomRight(Offset.zero));
+    expect(bottomRightTooltipContentInGlobal.dx, bottomRightTipInGlobal.dx - _customPaddingValue);
+    expect(bottomRightTooltipContentInGlobal.dy, bottomRightTipInGlobal.dy - _customPaddingValue);
+  });
+
+  testWidgets('Tooltip margin - TooltipTheme', (WidgetTester tester) async {
+    final GlobalKey key = GlobalKey();
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: Overlay(
+          initialEntries: <OverlayEntry>[
+            OverlayEntry(
+              builder: (BuildContext context) {
+                return TooltipTheme(
+                  data: const TooltipThemeData(
+                    padding: EdgeInsets.zero,
+                    margin: EdgeInsets.all(_customPaddingValue),
+                  ),
+                  child: Tooltip(
+                    key: key,
+                    message: tooltipText,
+                    child: const SizedBox(
+                      width: 0.0,
+                      height: 0.0,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+    (key.currentState as dynamic).ensureTooltipVisible(); // Before using "as dynamic" in your code, see note at the top of the file.
+    await tester.pump(const Duration(seconds: 2)); // faded in, show timer started (and at 0.0)
+
+    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent!.parent!.parent!.parent!.parent! as RenderBox;
+    final RenderBox tooltipContent = tester.renderObject(find.text(tooltipText));
+
+    final Offset topLeftTipInGlobal = tip.localToGlobal(tip.size.topLeft(Offset.zero));
+    final Offset topLeftTooltipContentInGlobal = tooltipContent.localToGlobal(tooltipContent.size.topLeft(Offset.zero));
+    expect(topLeftTooltipContentInGlobal.dx, topLeftTipInGlobal.dx + _customPaddingValue);
+    expect(topLeftTooltipContentInGlobal.dy, topLeftTipInGlobal.dy + _customPaddingValue);
+
+    final Offset topRightTipInGlobal = tip.localToGlobal(tip.size.topRight(Offset.zero));
+    final Offset topRightTooltipContentInGlobal = tooltipContent.localToGlobal(tooltipContent.size.topRight(Offset.zero));
+    expect(topRightTooltipContentInGlobal.dx, topRightTipInGlobal.dx - _customPaddingValue);
+    expect(topRightTooltipContentInGlobal.dy, topRightTipInGlobal.dy + _customPaddingValue);
+
+    final Offset bottomLeftTipInGlobal = tip.localToGlobal(tip.size.bottomLeft(Offset.zero));
+    final Offset bottomLeftTooltipContentInGlobal = tooltipContent.localToGlobal(tooltipContent.size.bottomLeft(Offset.zero));
+    expect(bottomLeftTooltipContentInGlobal.dx, bottomLeftTipInGlobal.dx + _customPaddingValue);
+    expect(bottomLeftTooltipContentInGlobal.dy, bottomLeftTipInGlobal.dy - _customPaddingValue);
+
+    final Offset bottomRightTipInGlobal = tip.localToGlobal(tip.size.bottomRight(Offset.zero));
+    final Offset bottomRightTooltipContentInGlobal = tooltipContent.localToGlobal(tooltipContent.size.bottomRight(Offset.zero));
+    expect(bottomRightTooltipContentInGlobal.dx, bottomRightTipInGlobal.dx - _customPaddingValue);
+    expect(bottomRightTooltipContentInGlobal.dy, bottomRightTipInGlobal.dy - _customPaddingValue);
   });
 
   testWidgets('Tooltip message textStyle - ThemeData.tooltipTheme', (WidgetTester tester) async {
@@ -467,7 +589,7 @@ void main() {
         tooltipTheme: const TooltipThemeData(
           textStyle: TextStyle(
             color: Colors.orange,
-            decoration: TextDecoration.underline
+            decoration: TextDecoration.underline,
           ),
         ),
       ),
@@ -484,7 +606,7 @@ void main() {
     (key.currentState as dynamic).ensureTooltipVisible(); // Before using "as dynamic" in your code, see note at the top of the file.
     await tester.pump(const Duration(seconds: 2)); // faded in, show timer started (and at 0.0)
 
-    final TextStyle textStyle = tester.widget<Text>(find.text(tooltipText)).style;
+    final TextStyle textStyle = tester.widget<Text>(find.text(tooltipText)).style!;
     expect(textStyle.color, Colors.orange);
     expect(textStyle.fontFamily, null);
     expect(textStyle.decoration, TextDecoration.underline);
@@ -494,10 +616,11 @@ void main() {
     final GlobalKey key = GlobalKey();
     await tester.pumpWidget(MaterialApp(
       home: TooltipTheme(
+        data: const TooltipThemeData(),
         child: Tooltip(
           textStyle: const TextStyle(
             color: Colors.orange,
-            decoration: TextDecoration.underline
+            decoration: TextDecoration.underline,
           ),
           key: key,
           message: tooltipText,
@@ -512,7 +635,7 @@ void main() {
     (key.currentState as dynamic).ensureTooltipVisible(); // Before using "as dynamic" in your code, see note at the top of the file.
     await tester.pump(const Duration(seconds: 2)); // faded in, show timer started (and at 0.0)
 
-    final TextStyle textStyle = tester.widget<Text>(find.text(tooltipText)).style;
+    final TextStyle textStyle = tester.widget<Text>(find.text(tooltipText)).style!;
     expect(textStyle.color, Colors.orange);
     expect(textStyle.fontFamily, null);
     expect(textStyle.decoration, TextDecoration.underline);
@@ -540,7 +663,7 @@ void main() {
                   return Tooltip(
                     key: key,
                     message: tooltipText,
-                    child: Container(
+                    child: const SizedBox(
                       width: 0.0,
                       height: 0.0,
                     ),
@@ -555,14 +678,14 @@ void main() {
     (key.currentState as dynamic).ensureTooltipVisible(); // Before using "as dynamic" in your code, see note at the top of the file.
     await tester.pump(const Duration(seconds: 2)); // faded in, show timer started (and at 0.0)
 
-    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent.parent.parent.parent;
+    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent!.parent!.parent!.parent! as RenderBox;
 
     expect(tip.size.height, equals(32.0));
     expect(tip.size.width, equals(74.0));
     expect(tip, paints..path(
       color: const Color(0x80800000),
     ));
-  }, skip: isBrowser);
+  });
 
   testWidgets('Tooltip decoration - TooltipTheme', (WidgetTester tester) async {
     final GlobalKey key = GlobalKey();
@@ -574,7 +697,7 @@ void main() {
       Directionality(
         textDirection: TextDirection.ltr,
         child: TooltipTheme(
-          decoration: customDecoration,
+          data: const TooltipThemeData(decoration: customDecoration),
           child: Overlay(
             initialEntries: <OverlayEntry>[
               OverlayEntry(
@@ -582,7 +705,7 @@ void main() {
                   return Tooltip(
                     key: key,
                     message: tooltipText,
-                    child: Container(
+                    child: const SizedBox(
                       width: 0.0,
                       height: 0.0,
                     ),
@@ -597,14 +720,14 @@ void main() {
     (key.currentState as dynamic).ensureTooltipVisible(); // Before using "as dynamic" in your code, see note at the top of the file.
     await tester.pump(const Duration(seconds: 2)); // faded in, show timer started (and at 0.0)
 
-    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent.parent.parent.parent;
+    final RenderBox tip = tester.renderObject(find.text(tooltipText)).parent!.parent!.parent!.parent! as RenderBox;
 
     expect(tip.size.height, equals(32.0));
     expect(tip.size.width, equals(74.0));
     expect(tip, paints..path(
       color: const Color(0x80800000),
     ));
-  }, skip: isBrowser);
+  });
 
   testWidgets('Tooltip height and padding - ThemeData.tooltipTheme', (WidgetTester tester) async {
     final GlobalKey key = GlobalKey();
@@ -641,7 +764,7 @@ void main() {
 
     final RenderBox tip = tester.renderObject(find.ancestor(
       of: find.text(tooltipText),
-      matching: find.byType(Padding),
+      matching: find.byType(Padding).first, // select [Tooltip.padding] instead of [Tooltip.margin]
     ));
     final RenderBox content = tester.renderObject(find.ancestor(
       of: find.text(tooltipText),
@@ -651,19 +774,21 @@ void main() {
     expect(tip.size.height, equals(customTooltipHeight));
     expect(content.size.height, equals(customTooltipHeight - 2 * customPaddingVal));
     expect(content.size.width, equals(tip.size.width - 2 * customPaddingVal));
-  }, skip: isBrowser);
+  });
 
   testWidgets('Tooltip height and padding - TooltipTheme', (WidgetTester tester) async {
     final GlobalKey key = GlobalKey();
     const double customTooltipHeight = 100.0;
-    const double customPaddingVal = 20.0;
+    const double customPaddingValue = 20.0;
 
     await tester.pumpWidget(
       Directionality(
         textDirection: TextDirection.ltr,
         child: TooltipTheme(
-          height: customTooltipHeight,
-          padding: const EdgeInsets.all(customPaddingVal),
+          data: const TooltipThemeData(
+            height: customTooltipHeight,
+            padding: EdgeInsets.all(customPaddingValue),
+          ),
           child: Overlay(
             initialEntries: <OverlayEntry>[
               OverlayEntry(
@@ -684,7 +809,7 @@ void main() {
 
     final RenderBox tip = tester.renderObject(find.ancestor(
       of: find.text(tooltipText),
-      matching: find.byType(Padding),
+      matching: find.byType(Padding).first, // select [Tooltip.padding] instead of [Tooltip.margin]
     ));
     final RenderBox content = tester.renderObject(find.ancestor(
       of: find.text(tooltipText),
@@ -692,14 +817,15 @@ void main() {
     ));
 
     expect(tip.size.height, equals(customTooltipHeight));
-    expect(content.size.height, equals(customTooltipHeight - 2 * customPaddingVal));
-    expect(content.size.width, equals(tip.size.width - 2 * customPaddingVal));
-  }, skip: isBrowser);
+    expect(content.size.height, equals(customTooltipHeight - 2 * customPaddingValue));
+    expect(content.size.width, equals(tip.size.width - 2 * customPaddingValue));
+  });
 
   testWidgets('Tooltip waitDuration - ThemeData.tooltipTheme', (WidgetTester tester) async {
     const Duration customWaitDuration = Duration(milliseconds: 500);
     final TestGesture gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await gesture.addPointer();
+    addTearDown(gesture.removePointer);
     await gesture.moveTo(const Offset(1.0, 1.0));
     await tester.pump();
     await gesture.moveTo(Offset.zero);
@@ -712,17 +838,17 @@ void main() {
               waitDuration: customWaitDuration,
             ),
           ),
-          child: Center(
+          child: const Center(
             child: Tooltip(
               message: tooltipText,
-              child: Container(
+              child: SizedBox(
                 width: 100.0,
                 height: 100.0,
               ),
             ),
           ),
         ),
-      )
+      ),
     );
 
     final Finder tooltip = find.byType(Tooltip);
@@ -739,34 +865,34 @@ void main() {
     await tester.pump();
 
     // Wait for it to disappear.
-    await tester.pump(const Duration(milliseconds: 0)); // Should immediately disappear
+    await tester.pump(Duration.zero); // Should immediately disappear
     expect(find.text(tooltipText), findsNothing);
-    await gesture.removePointer();
   });
 
   testWidgets('Tooltip waitDuration - TooltipTheme', (WidgetTester tester) async {
     const Duration customWaitDuration = Duration(milliseconds: 500);
     final TestGesture gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await gesture.addPointer();
+    addTearDown(gesture.removePointer);
     await gesture.moveTo(const Offset(1.0, 1.0));
     await tester.pump();
     await gesture.moveTo(Offset.zero);
 
     await tester.pumpWidget(
-      MaterialApp(
+      const MaterialApp(
         home: TooltipTheme(
-          waitDuration: customWaitDuration,
+          data: TooltipThemeData(waitDuration: customWaitDuration),
           child: Center(
             child: Tooltip(
               message: tooltipText,
-              child: Container(
+              child: SizedBox(
                 width: 100.0,
                 height: 100.0,
               ),
             ),
           ),
         ),
-      )
+      ),
     );
 
     final Finder tooltip = find.byType(Tooltip);
@@ -783,9 +909,8 @@ void main() {
     await tester.pump();
 
     // Wait for it to disappear.
-    await tester.pump(const Duration(milliseconds: 0)); // Should immediately disappear
+    await tester.pump(Duration.zero); // Should immediately disappear
     expect(find.text(tooltipText), findsNothing);
-    await gesture.removePointer();
   });
 
   testWidgets('Tooltip showDuration - ThemeData.tooltipTheme', (WidgetTester tester) async {
@@ -798,17 +923,17 @@ void main() {
               showDuration: customShowDuration,
             ),
           ),
-          child: Center(
+          child: const Center(
             child: Tooltip(
               message: tooltipText,
-              child: Container(
+              child: SizedBox(
                 width: 100.0,
                 height: 100.0,
               ),
             ),
           ),
         ),
-      )
+      ),
     );
 
     final Finder tooltip = find.byType(Tooltip);
@@ -828,20 +953,20 @@ void main() {
   testWidgets('Tooltip showDuration - TooltipTheme', (WidgetTester tester) async {
     const Duration customShowDuration = Duration(milliseconds: 3000);
     await tester.pumpWidget(
-      MaterialApp(
+      const MaterialApp(
         home: TooltipTheme(
-          showDuration: customShowDuration,
+          data: TooltipThemeData(showDuration: customShowDuration),
           child: Center(
             child: Tooltip(
               message: tooltipText,
-              child: Container(
+              child: SizedBox(
                 width: 100.0,
                 height: 100.0,
               ),
             ),
           ),
         ),
-      )
+      ),
     );
 
     final Finder tooltip = find.byType(Tooltip);
@@ -878,11 +1003,15 @@ void main() {
         TestSemantics.rootChild(
           children: <TestSemantics>[
             TestSemantics(
-              flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
               children: <TestSemantics>[
                 TestSemantics(
-                  label: 'Foo\nBar',
-                  textDirection: TextDirection.ltr,
+                  flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
+                  children: <TestSemantics>[
+                    TestSemantics(
+                      label: 'Foo\nBar',
+                      textDirection: TextDirection.ltr,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -898,9 +1027,10 @@ void main() {
     final SemanticsTester semantics = SemanticsTester(tester);
 
     await tester.pumpWidget(
-      MaterialApp(
+      const MaterialApp(
         home: TooltipTheme(
-          child: const Center(
+          data: TooltipThemeData(),
+          child: Center(
             child: Tooltip(
               message: 'Foo',
               child: Text('Bar'),
@@ -915,11 +1045,15 @@ void main() {
         TestSemantics.rootChild(
           children: <TestSemantics>[
             TestSemantics(
-              flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
               children: <TestSemantics>[
                 TestSemantics(
-                  label: 'Foo\nBar',
-                  textDirection: TextDirection.ltr,
+                  flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
+                  children: <TestSemantics>[
+                    TestSemantics(
+                      label: 'Foo\nBar',
+                      textDirection: TextDirection.ltr,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -955,11 +1089,15 @@ void main() {
         TestSemantics.rootChild(
           children: <TestSemantics>[
             TestSemantics(
-              flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
               children: <TestSemantics>[
                 TestSemantics(
-                  label: 'Bar',
-                  textDirection: TextDirection.ltr,
+                  flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
+                  children: <TestSemantics>[
+                    TestSemantics(
+                      label: 'Bar',
+                      textDirection: TextDirection.ltr,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -975,10 +1113,10 @@ void main() {
     final SemanticsTester semantics = SemanticsTester(tester);
 
     await tester.pumpWidget(
-      MaterialApp(
+      const MaterialApp(
         home: TooltipTheme(
-          excludeFromSemantics: true,
-          child: const Center(
+          data: TooltipThemeData(excludeFromSemantics: true),
+          child: Center(
             child: Tooltip(
               message: 'Foo',
               child: Text('Bar'),
@@ -993,11 +1131,15 @@ void main() {
         TestSemantics.rootChild(
           children: <TestSemantics>[
             TestSemantics(
-              flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
               children: <TestSemantics>[
                 TestSemantics(
-                  label: 'Bar',
-                  textDirection: TextDirection.ltr,
+                  flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
+                  children: <TestSemantics>[
+                    TestSemantics(
+                      label: 'Bar',
+                      textDirection: TextDirection.ltr,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1062,6 +1204,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: TooltipTheme(
+          data: const TooltipThemeData(),
           child: Center(
             child: Tooltip(
               message: 'Foo',
@@ -1113,6 +1256,6 @@ void main() {
 
 SemanticsNode findDebugSemantics(RenderObject object) {
   if (object.debugSemantics != null)
-    return object.debugSemantics;
-  return findDebugSemantics(object.parent);
+    return object.debugSemantics!;
+  return findDebugSemantics(object.parent! as RenderObject);
 }
